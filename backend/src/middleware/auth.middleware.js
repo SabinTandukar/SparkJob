@@ -15,7 +15,7 @@ export const authenticate = async (req, res, next) => {
     const [scheme, token] = authHeader.split(" ");
 
     // check both parts
-    if (scheme !== "Bearer" || token) {
+    if (scheme !== "Bearer" || !token) {
       return res.status(401).json({ error: "Invalid authorization format." });
     }
 

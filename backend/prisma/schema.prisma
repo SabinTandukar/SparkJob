@@ -48,7 +48,7 @@ model RecruiterProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   companyName String?
-  job         Job?
+  job         Job[]
 }
 
 enum EmployeeType {
@@ -67,7 +67,7 @@ enum JobStatus {
 
 model Job {
   id          String @id @default(uuid())
-  recruiterId String @unique
+  recruiterId String
 
   title        String
   description  String
