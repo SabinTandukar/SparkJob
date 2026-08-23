@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 
+// create job
 export const createJob = async (req, res) => {
   try {
     // Get data from request
@@ -53,6 +54,7 @@ export const createJob = async (req, res) => {
   }
 };
 
+// get all jobs
 export const getJobs = async (req, res) => {
   try {
     // get all jobs
@@ -80,5 +82,117 @@ export const getJobs = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
+// get single job
+export const getSingleJob = async (req, res) => {
+  try {
+    // get id from the url
+    const { id } = req.params;
+    // find the jobs with prisma
+    const job = await prisma.job.findUnique({
+      where: {
+        id,
+      },
+      //   include company name
+      include: {
+        recruiter: {
+          select: {
+            companyName: true,
+          },
+        },
+      },
+    });
+
+    // check whether the job exists
+    if (!job) {
+      return res.status(404).json({ error: "Job Not found" });
+    }
+
+    return res.status(200).json({ job });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong." });
+  }
+};
+
+// update job
+export const updateJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      title,
+      description,
+      location,
+      employeeType,
+      salaryMin,
+      salaryMax,
+      requirements,
+      skills,
+      status,
+    } = req.body;
+
+    // find job
+    const job = await prisma.job.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    // check if job exists
+    if (!job) {
+      return res.status(404).json({ error: "Job Not found" });
+    }
+
+    // requireRole("RECRUITER")
+    const recruiter = await prisma.recruiterProfile.findUnique({
+      where: {
+        userId: req.user.id,
+      },
+    });
+
+    // check if recruiter exists
+    if (!recruiter) {
+      return res.status(404).json({
+        error: "Recruiter profile not found.",
+      });
+    }
+
+    // Check job belongs to logged-in recruiter
+    if (job.recruiterId !== recruiter.id) {
+      return res.status(403).json({
+        error: "You are not allowed to update this job.",
+      });
+    }
+
+    // updateJob
+    const updateData = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (location !== undefined) updateData.location = location;
+    if (employeeType !== undefined) updateData.employeeType = employeeType;
+    if (salaryMin !== undefined) updateData.salaryMin = salaryMin;
+    if (salaryMax !== undefined) updateData.salaryMax = salaryMax;
+    if (requirements !== undefined) updateData.requirements = requirements;
+    if (skills !== undefined) updateData.skills = skills;
+    if (status !== undefined) updateData.status = status;
+
+    const updateJob = await prisma.job.update({
+      where: {
+        id,
+      },
+      data: updateData,
+    });
+
+    return res.status(200).json({
+      message: "Job updated successfully",
+      job: updateJob,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong!" });
   }
 };
