@@ -15,6 +15,7 @@ datasource db {
 enum UserRole {
   CANDIDATE
   RECRUITER
+  ADMIN
 }
 
 model User {
@@ -47,4 +48,40 @@ model RecruiterProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   companyName String?
+  job         Job?
+}
+
+enum EmployeeType {
+  FULL_TIME
+  PART_TIME
+  FREELANCER
+  CONTRACT
+  INTERNSHIP
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  DRAFT
+}
+
+model Job {
+  id          String @id @default(uuid())
+  recruiterId String @unique
+
+  title        String
+  description  String
+  location     String?
+  employeeType EmployeeType
+  salaryMin    Decimal?
+  salaryMax    Decimal?
+  requirements String?
+  skills       String[]
+
+  status JobStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recruiter RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
 }
