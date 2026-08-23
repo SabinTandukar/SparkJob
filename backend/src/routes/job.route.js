@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createJob,
+  deleteJob,
   getJobs,
   getSingleJob,
   updateJob,
@@ -18,5 +19,7 @@ router.get("/", getJobs);
 router.get("/:id", getSingleJob);
 // update job
 router.patch("/:id", authenticate, requireRole("RECRUITER"), updateJob);
+// delete job
+router.delete("/:id", authenticate, requireRole("RECRUITER"), deleteJob);
 
 export default router;

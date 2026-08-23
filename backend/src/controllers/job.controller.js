@@ -168,17 +168,19 @@ export const updateJob = async (req, res) => {
     }
 
     // updateJob
-    const updateData = {};
-
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (location !== undefined) updateData.location = location;
-    if (employeeType !== undefined) updateData.employeeType = employeeType;
-    if (salaryMin !== undefined) updateData.salaryMin = salaryMin;
-    if (salaryMax !== undefined) updateData.salaryMax = salaryMax;
-    if (requirements !== undefined) updateData.requirements = requirements;
-    if (skills !== undefined) updateData.skills = skills;
-    if (status !== undefined) updateData.status = status;
+    const updateData = Object.fromEntries(
+      Object.entries({
+        title,
+        description,
+        location,
+        employeeType,
+        salaryMin,
+        salaryMax,
+        requirements,
+        skills,
+        status,
+      }).filter(([_, value]) => value !== undefined),
+    );
 
     const updateJob = await prisma.job.update({
       where: {
@@ -194,5 +196,58 @@ export const updateJob = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong!" });
+  }
+};
+
+// delete job
+export const deleteJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the job
+    const job = await prisma.job.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    // check if job exists
+    if (!job) {
+      return res.status(404).json({ error: "Job Not Found" });
+    }
+
+    // find the recruiter profile
+    const recruiter = await prisma.recruiterProfile.findUnique({
+      where: {
+        userId: req.user.id,
+      },
+    });
+
+    // check recruiter profile
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter Profile Not Found" });
+    }
+
+    // check ownership
+    if (job.recruiterId !== recruiter.id) {
+      return res
+        .status(403)
+        .json({ error: "You are not allowed to delete this job." });
+    }
+
+    // Delete the job
+    await prisma.job.delete({
+      where: {
+        id,
+      },
+    });
+
+    // return output
+    return res.status(200).json({
+      error: "Job deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong." });
   }
 };
