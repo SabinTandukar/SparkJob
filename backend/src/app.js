@@ -2,6 +2,7 @@ import express from "express";
 import authRoutes from "./routes/auth.route.js";
 import jobRoutes from "./routes/job.route.js";
 import candidateRoutes from "./routes/candidate.route.js";
+import educationRoutes from "./routes/education.route.js";
 
 const app = express();
 
@@ -17,5 +18,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 // candidate route
 app.use("/api/candidates", candidateRoutes);
+// education route
+app.use("/api/candidates/education", educationRoutes);
 
 export default app;
