@@ -13,14 +13,28 @@ export const createJob = async (req, res) => {
       salaryMax,
       requirements,
       skills,
+      status,
       deadline,
     } = req.body;
 
     // Validate data
-    if (!title || !description || !employeeType) {
-      return res
-        .status(400)
-        .json({ error: "Title, description, and employee type are required." });
+    if (!title || !description || !employeeType || !deadline) {
+      return res.status(400).json({
+        error: "Title, description, employee type, and deadline are required.",
+      });
+    }
+
+    // convert deadline to date
+    const jobDeadline = new Date(deadline);
+
+    // check whether the supplied date is actually valid
+    if (isNaN(jobDeadline.getTime())) {
+      return res.status(400).json({ error: "Invalid deadline" });
+    }
+
+    // make sure the deadline is in the future
+    if (jobDeadline <= new Date()) {
+      return res.status(400).json({ error: "Deadline must be in the future" });
     }
 
     // get authenticated recruiter
@@ -43,7 +57,8 @@ export const createJob = async (req, res) => {
         salaryMax,
         requirements,
         skills,
-        deadline,
+        status,
+        deadline: jobDeadline,
         recruiterId: recruiter.id,
       },
     });
@@ -63,6 +78,10 @@ export const getJobs = async (req, res) => {
     const jobs = await prisma.job.findMany({
       where: {
         status: "OPEN",
+        deadline: {
+          // gt->greater than
+          gt: new Date(),
+        },
       },
       // include company/recruiter information
       include: {
@@ -134,6 +153,7 @@ export const updateJob = async (req, res) => {
       requirements,
       skills,
       status,
+      deadline,
     } = req.body;
 
     // find job
@@ -148,7 +168,7 @@ export const updateJob = async (req, res) => {
       return res.status(404).json({ error: "Job Not found" });
     }
 
-    // requireRole("RECRUITER")
+    // find authenticated recruiter
     const recruiter = await prisma.recruiterProfile.findUnique({
       where: {
         userId: req.user.id,
@@ -169,6 +189,23 @@ export const updateJob = async (req, res) => {
       });
     }
 
+    // validate deadline only if recruiter provided one
+    let validateDeadline;
+
+    if (deadline !== undefined) {
+      validateDeadline = new Date(deadline);
+
+      if (isNaN(validateDeadline.getTime())) {
+        return res.status(400).json({ error: "Invalid deadline" });
+      }
+
+      if (validateDeadline <= new Date()) {
+        return res
+          .status(400)
+          .json({ error: "Deadline must be in the future" });
+      }
+    }
+
     // updateJob
     const updateData = Object.fromEntries(
       Object.entries({
@@ -181,6 +218,7 @@ export const updateJob = async (req, res) => {
         requirements,
         skills,
         status,
+        deadline: validateDeadline,
       }).filter(([_, value]) => value !== undefined),
     );
 
