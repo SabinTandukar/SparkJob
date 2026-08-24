@@ -22,7 +22,7 @@ export const createEducation = async (req, res) => {
       return res.status(404).json({ error: "Candidate profile not found" });
     }
 
-    // Create candidate record
+    // Create education record
     const education = await prisma.education.create({
       data: {
         institution,
@@ -157,7 +157,7 @@ export const deleteEducation = async (req, res) => {
       return res.status(404).json({ error: "Education record not found" });
     }
 
-    // Find logged in candidate
+    // Find logged-in candidate
     const candidate = await prisma.candidateProfile.findUnique({
       where: {
         userId: req.user.id,
