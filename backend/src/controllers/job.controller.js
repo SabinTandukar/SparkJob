@@ -13,6 +13,7 @@ export const createJob = async (req, res) => {
       salaryMax,
       requirements,
       skills,
+      deadline,
     } = req.body;
 
     // Validate data
@@ -42,6 +43,7 @@ export const createJob = async (req, res) => {
         salaryMax,
         requirements,
         skills,
+        deadline,
         recruiterId: recruiter.id,
       },
     });

@@ -78,7 +78,8 @@ model Job {
   requirements String?
   skills       String[]
 
-  status JobStatus @default(OPEN)
+  status   JobStatus @default(OPEN)
+  deadline DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
