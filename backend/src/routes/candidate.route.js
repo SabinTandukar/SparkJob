@@ -20,7 +20,7 @@ router.get(
 
 // Update candidate profile
 router.put(
-  "/profile",
+  "/profile/:id",
   authenticate,
   requireRole("CANDIDATE"),
   updateCandidateProfile,

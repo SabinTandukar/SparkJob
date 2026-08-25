@@ -21,7 +21,7 @@ router.post("/", authenticate, requireRole("CANDIDATE"), createEducation);
 router.get("/", authenticate, requireRole("CANDIDATE"), getEducation);
 
 // update education
-router.put("/:id", authenticate, requireRole("CANDIDATE", updateEducation));
+router.put("/:id", authenticate, requireRole("CANDIDATE"), updateEducation);
 
 // delete education
 router.delete("/:id", authenticate, requireRole("CANDIDATE"), deleteEducation);

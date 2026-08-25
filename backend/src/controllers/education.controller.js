@@ -14,7 +14,7 @@ export const createEducation = async (req, res) => {
     // find the candidate profile belonging to the logged in user
     const candidate = await prisma.candidateProfile.findUnique({
       where: {
-        id: req.user.id,
+        userId: req.user.id,
       },
     });
 
@@ -25,6 +25,7 @@ export const createEducation = async (req, res) => {
     // Create education record
     const education = await prisma.education.create({
       data: {
+        candidateId: candidate.id,
         institution,
         degree,
         field,
@@ -47,9 +48,9 @@ export const createEducation = async (req, res) => {
 export const getEducation = async (req, res) => {
   try {
     // Find candidate profile
-    const candidate = await prisma.education.findUnique({
+    const candidate = await prisma.candidateProfile.findUnique({
       where: {
-        id: req.user.id,
+        userId: req.user.id,
       },
     });
 
@@ -116,7 +117,7 @@ export const updateEducation = async (req, res) => {
     }
 
     // Update education
-    const updateEducation = await prisma.education.update({
+    const updatedEducation = await prisma.education.update({
       where: {
         id,
       },
@@ -132,7 +133,7 @@ export const updateEducation = async (req, res) => {
 
     return res.status(200).json({
       message: "Education updated successfully",
-      education: updateEducation,
+      education: updatedEducation,
     });
   } catch (error) {
     console.error(error);

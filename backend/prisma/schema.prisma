@@ -43,11 +43,11 @@ model CandidateProfile {
   location  String?
   headline  String?
   bio       String?
+  skills    String[]
   resumeUrl String?
 
   education      Education[]
   experiences    Experience[]
-  skills         String[]
   projects       Project[]
   certifications Certification[]
 }

@@ -7,6 +7,12 @@ export const getCandidateProfile = async (req, res) => {
       where: {
         userId: req.user.id,
       },
+      include: {
+        experiences: true,
+        education: true,
+        projects: true,
+        certifications: true,
+      },
     });
 
     // if the profile doesn't exist
@@ -26,8 +32,16 @@ export const getCandidateProfile = async (req, res) => {
 export const updateCandidateProfile = async (req, res) => {
   try {
     // get the filed that the candidate wants to update
-    const { firstName, lastName, phone, location, headline, bio, resumeUrl } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      phone,
+      location,
+      headline,
+      bio,
+      skills,
+      resumeUrl,
+    } = req.body;
 
     // find the candidate profile
     const existingProfile = await prisma.candidateProfile.findUnique({
@@ -51,8 +65,9 @@ export const updateCandidateProfile = async (req, res) => {
         location,
         headline,
         bio,
+        skills,
         resumeUrl,
-      }).filter(([__dirname, value]) => value !== undefined),
+      }).filter(([, value]) => value !== undefined),
     );
 
     // Update candidate profile

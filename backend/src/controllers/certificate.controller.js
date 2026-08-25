@@ -1,17 +1,14 @@
 import { prisma } from "../lib/prisma.js";
 
-// create experience
-export const createExperience = async (req, res) => {
+// create certification
+export const createCertification = async (req, res) => {
   try {
     // Get experience from the request
-    const { company, position, location, startDate, endDate, description } =
-      req.body;
+    const { name, issuer, issueDate, credentialUrl } = req.body;
 
     //   validate required field
-    if (!company || !position || !startDate) {
-      return res
-        .status(400)
-        .json({ error: "Company, Position, Start date required" });
+    if (!name) {
+      return res.status(400).json({ error: "Certificate name is required" });
     }
 
     // find the candidate profile belonging to the logged in user
@@ -26,29 +23,27 @@ export const createExperience = async (req, res) => {
     }
 
     // Create exprience record
-    const experience = await prisma.experience.create({
+    const certification = await prisma.certification.create({
       data: {
         candidateId: candidate.id,
-        company,
-        position,
-        location,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        description,
+        name,
+        issuer,
+        issueDate: issueDate ? new Date(issueDate) : null,
+        credentialUrl,
       },
     });
 
     return res
       .status(200)
-      .json({ message: "Experience created successfully", experience });
+      .json({ message: "Certification created successfully", certification });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong" });
   }
 };
 
-// Get all experience records
-export const getExperience = async (req, res) => {
+// Get all certification records
+export const getCertification = async (req, res) => {
   try {
     // Find candidate profile
     const candidate = await prisma.candidateProfile.findUnique({
@@ -61,41 +56,37 @@ export const getExperience = async (req, res) => {
       return res.status(404).json({ error: "Candidate profile not found" });
     }
 
-    // Get all experience records belonging to this candidate
-    const experience = await prisma.experience.findMany({
+    // Get all certification records belonging to this candidate
+    const certification = await prisma.certification.findMany({
       where: {
         candidateId: candidate.id,
       },
-      orderBy: {
-        startDate: "desc",
-      },
     });
 
-    return res.status(200).json({ experience });
+    return res.status(200).json({ certification });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong" });
   }
 };
 
-// update experience
-export const updateExperience = async (req, res) => {
+// update certification
+export const updateCertification = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { company, position, location, startDate, endDate, description } =
-      req.body;
+    const { name, issuer, issueDate, credentialUrl } = req.body;
 
-    // find the experience record
-    const experience = await prisma.experience.findUnique({
+    // find the certification record
+    const certification = await prisma.certification.findUnique({
       where: {
         id,
       },
     });
 
-    // check if experience exists
-    if (!experience) {
-      return res.status(404).json({ error: "Experience record not found" });
+    // check if certification exists
+    if (!certification) {
+      return res.status(404).json({ error: "Certificate record not found" });
     }
 
     // find the candidate profile of the logged in user
@@ -109,31 +100,29 @@ export const updateExperience = async (req, res) => {
       return res.status(404).json({ error: "Candidate profile not found" });
     }
 
-    // Make sure the experience belongs to candidate
-    if (experience.candidateId !== candidate.id) {
+    // Make sure the certification belongs to candidate
+    if (certification.candidateId !== candidate.id) {
       return res.status(403).json({
-        error: "You are not allowed to update this experience",
+        error: "You are not allowed to update this certification",
       });
     }
 
-    // update experience
-    const updatedExperience = await prisma.experience.update({
+    // update certification
+    const updatedCertification = await prisma.certification.update({
       where: {
         id,
       },
       data: {
-        company,
-        position,
-        location,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        description,
+        name,
+        issuer,
+        issueDate: issueDate ? new Date(issueDate) : null,
+        credentialUrl,
       },
     });
 
     return res.status(200).json({
-      message: "Experience updated successfully",
-      experience: updatedExperience,
+      message: "Certification updated successfully",
+      certification: updatedCertification,
     });
   } catch (error) {
     console.error(error);
@@ -141,21 +130,21 @@ export const updateExperience = async (req, res) => {
   }
 };
 
-// Delete experience
-export const deleteExperience = async (req, res) => {
+// Delete certification
+export const deleteCertification = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // find experience
-    const experience = await prisma.experience.findUnique({
+    // find certification
+    const certification = await prisma.certification.findUnique({
       where: {
         id,
       },
     });
 
-    // check if experience exists
-    if (!experience) {
-      return res.status(404).json({ error: "Experience record not found" });
+    // check if certification exists
+    if (!certification) {
+      return res.status(404).json({ error: "Certificate record not found" });
     }
 
     // find logged-in candidate
@@ -173,21 +162,21 @@ export const deleteExperience = async (req, res) => {
     }
 
     // check ownership
-    if (experience.candidateId !== candidate.id) {
+    if (certification.candidateId !== candidate.id) {
       return res.status(403).json({
-        error: "You are not allowed to delete this experience",
+        error: "You are not allowed to delete this Certificate",
       });
     }
 
-    // Delete experience
-    await prisma.experience.delete({
+    // Delete certification
+    await prisma.certification.delete({
       where: {
         id,
       },
     });
 
     return res.status(200).json({
-      message: "Experience deleted successfully",
+      message: "Certificate deleted successfully",
     });
   } catch (error) {
     console.error(error);
