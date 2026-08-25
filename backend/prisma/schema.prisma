@@ -46,10 +46,11 @@ model CandidateProfile {
   skills    String[]
   resumeUrl String?
 
-  education      Education[]
-  experiences    Experience[]
-  projects       Project[]
-  certifications Certification[]
+  education       Education[]
+  experiences     Experience[]
+  projects        Project[]
+  certifications  Certification[]
+  jobApplications JobApplication[]
 }
 
 model RecruiterProfile {
@@ -95,7 +96,8 @@ model Job {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  recruiter RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  recruiter       RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  jobApplications JobApplication[]
 }
 
 model Education {
@@ -165,4 +167,33 @@ model Certification {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// application status
+enum ApplicationStatus {
+  APPLIED
+  REVIEWING
+  SHORTLISTED
+  INTERVIEW
+  REJECTED
+  HIRED
+}
+
+model JobApplication {
+  id String @id @default(uuid())
+
+  candidateId String
+  jobId       String
+
+  coverLetter String?
+  status      ApplicationStatus @default(APPLIED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
 }
