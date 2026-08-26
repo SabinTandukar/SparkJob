@@ -3,6 +3,9 @@ import { prisma } from "../lib/prisma.js";
 // get recruiter application
 export const getRecruiterApplications = async (req, res) => {
   try {
+    // Get filters from query parameters
+    const { status, jobId } = req.query;
+
     // find recruiter profile
     const recruiter = await prisma.recruiterProfile.findUnique({
       where: {
@@ -13,31 +16,68 @@ export const getRecruiterApplications = async (req, res) => {
     if (!recruiter) {
       return res.status(404).json({ error: "Recruiter profile not found" });
     }
-    // // find applications for recruiter's job
-    // const jobs = await prisma.job.findMany({
-    //   where: {
-    //     recruiterId: recruiter.id,
-    //   },
-    // });
 
-    // // check if jobs exists
-    // if (jobs.length === 0) {
-    //   return res
-    //     .status(200)
-    //     .json({ applications: [], message: "Job does not exists" });
-    // }
+    /*
+    // find applications for recruiter's job
+    const jobs = await prisma.job.findMany({
+      where: {
+        recruiterId: recruiter.id,
+      },
+    });
+
+    // check if jobs exists
+    if (jobs.length === 0) {
+      return res
+        .status(200)
+        .json({ applications: [], message: "Job does not exists" });
+    }
+
+    */
+
+    // allowed application statuses
+    const allowedStatus = [
+      "APPLIED",
+      "REVIEWING",
+      "SHORTLISTED",
+      "INTERVIEW",
+      "HIRED",
+      "REJECTED",
+    ];
+
+    // valid status
+    if (status && !allowedStatus.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid application status",
+      });
+    }
+
+    // Build where condition
+    const where = {
+      job: {
+        recruiterId: recruiter.id,
+      },
+    };
+
+    // filter by application status
+    if (status) {
+      where.status = status;
+    }
+
+    // filter by specific job
+    if (jobId) {
+      where.jboId = jobId;
+    }
 
     // find applications belonging to those jobs
     const applications = await prisma.jobApplication.findMany({
-      where: {
-        job: {
-          recruiterId: recruiter.id,
-        },
-      },
+      where,
       // include candidate and job information
       include: {
         candidate: true,
         job: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
