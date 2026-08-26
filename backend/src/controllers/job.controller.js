@@ -291,3 +291,62 @@ export const deleteJob = async (req, res) => {
     return res.status(500).json({ error: "Something went wrong." });
   }
 };
+
+// Search for jobs
+export const searchJobs = async (req, res) => {
+  try {
+    // get search filters from query parameters
+    const { keyword, location, jobType } = req.query;
+
+    // buid the prisma where object
+    const where = {};
+
+    // only show open jobs
+    where.status = "OPEN";
+
+    // Search title and description
+    if (keyword) {
+      where.OR = [
+        {
+          title: {
+            contains: keyword,
+            mode: "insensitive",
+          },
+        },
+        {
+          description: {
+            contains: keyword,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    // filter by location
+    if (location) {
+      where.location = {
+        contains: location,
+        mode: "insensative",
+      };
+    }
+
+    // filter by job type
+    if (jobType) {
+      where.jobType = jobType;
+    }
+
+    // find matching jobs
+    const jobs = await prisma.job.findMany({
+      where,
+      orderBy: {
+        createdAt: desc,
+      },
+    });
+
+    // return jobs
+    return res.status(200).json({ count: jobs.length, jobs });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};

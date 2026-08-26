@@ -1,10 +1,11 @@
 import { Router } from "express";
 import {
   createJob,
-  deleteJob,
   getJobs,
   getSingleJob,
   updateJob,
+  deleteJob,
+  searchJobs,
 } from "../controllers/job.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
@@ -15,6 +16,8 @@ router.post("/", authenticate, requireRole("RECRUITER"), createJob);
 
 // get all open jobs
 router.get("/", getJobs);
+// search job
+router.get("/search", searchJobs);
 // get single job
 router.get("/:id", getSingleJob);
 // update job
