@@ -6,6 +6,8 @@ import educationRoutes from "./routes/education.route.js";
 import experienceRoutes from "./routes/experience.route.js";
 import projectRoutes from "./routes/project.route.js";
 import certificationRoutes from "./routes/certificate.route.js";
+import applicationRoutes from "./routes/application.route.js";
+import recruiterApplicationRoutes from "./routes/recruiterApplication.route.js";
 
 const app = express();
 
@@ -29,5 +31,9 @@ app.use("/api/candidates/experience", experienceRoutes);
 app.use("/api/candidates/project", projectRoutes);
 // certificate route
 app.use("/api/candidates/certification", certificationRoutes);
+// applicaton route
+app.use("/api/applications", applicationRoutes);
+// recruiter application route
+app.use("/api/recruiter/applications", recruiterApplicationRoutes);
 
 export default app;
