@@ -74,15 +74,47 @@ export const createJob = async (req, res) => {
 // get all jobs
 export const getJobs = async (req, res) => {
   try {
-    // get all jobs
-    const jobs = await prisma.job.findMany({
-      where: {
-        status: "OPEN",
-        deadline: {
-          // gt->greater than
-          gt: new Date(),
-        },
+    // get pagination parameters
+    const { page = 1, limit = 10 } = req.query;
+
+    // convert query parameters to numbers
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    // validate pagination
+    if (
+      !Number.isInteger(pageNumber) ||
+      !Number.isInteger(limitNumber) ||
+      pageNumber < 1 ||
+      limitNumber < 1
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Page and limit must be positive number" });
+    }
+
+    // calculate skip
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // conditions available for jobs
+    const where = {
+      status: "OPEN",
+      deadline: {
+        gt: new Date(),
       },
+    };
+
+    // Get total number of jobs
+    const totalJobs = await prisma.job.count({
+      where,
+    });
+
+    // get jobs for current page
+    const jobs = await prisma.job.findMany({
+      where,
+
+      skip,
+      take: limitNumber,
       // include company/recruiter information
       include: {
         recruiter: {
@@ -96,10 +128,23 @@ export const getJobs = async (req, res) => {
         createdAt: "desc",
       },
     });
-    // only show open jobs
-    return res.status(200).json({ jobs });
+
+    // calculate total pages
+    const totalPages = Math.ceil(totalJobs / limitNumber);
 
     // return jobs
+    return res.status(200).json({
+      jobs,
+      pagination: {
+        currentPage: pageNumber,
+        limit: limitNumber,
+        totalJobs,
+        totalPages,
+
+        hasNextPage: pageNumber < totalPages,
+        hasPreviousPage: pageNumber > 1,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong" });
@@ -296,7 +341,7 @@ export const deleteJob = async (req, res) => {
 export const searchJobs = async (req, res) => {
   try {
     // get search filters from query parameters
-    const { keyword, location, jobType } = req.query;
+    const { keyword, location, employeeType } = req.query;
 
     // buid the prisma where object
     const where = {};
@@ -326,20 +371,20 @@ export const searchJobs = async (req, res) => {
     if (location) {
       where.location = {
         contains: location,
-        mode: "insensative",
+        mode: "insensitive",
       };
     }
 
     // filter by job type
-    if (jobType) {
-      where.jobType = jobType;
+    if (employeeType) {
+      where.employeeType = employeeType;
     }
 
     // find matching jobs
     const jobs = await prisma.job.findMany({
       where,
       orderBy: {
-        createdAt: desc,
+        createdAt: "desc",
       },
     });
 
