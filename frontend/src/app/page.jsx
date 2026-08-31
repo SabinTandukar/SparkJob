@@ -1,10 +1,27 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search, Briefcase, Users, ArrowRight } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
+  const [keyword, setKeyword] = useState("");
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+
+    const searchKeyword = keyword.trim();
+
+    // Don't search if input is empty
+    if (!searchKeyword) {
+      return;
+    }
+
+    router.push(`/jobs?keyword=${encodeURIComponent(searchKeyword)}`);
+  };
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       {/* Hero */}
@@ -31,32 +48,35 @@ export default function Home() {
             </p>
           </motion.div>
 
-          {/* Search */}
-          <motion.div
+          {/* Job Title Search */}
+          <motion.form
+            onSubmit={handleSearch}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.7 }}
             className="mt-10 max-w-4xl"
           >
-            <div className="flex flex-col gap-3 rouned-2xl border border-slate-800 bg-slate-900 md:flex-row">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900 md:flex-row">
               <div className="flex flex-1 items-center gap-3 rounded-xl bg-slate-800 px-4 py-3">
-                <Search className="text-slate-400" size={20} />
-
+                <Search className="text-slate-400" size={26} />
                 <input
                   type="text"
-                  placeholder="Job title or keyword"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Search By Job Title"
                   className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  required
                 />
-              </div>
 
-              <Link
-                href="/jobs"
-                className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-medium transition hover:bg-blue-500"
-              >
-                Search Jobs <ArrowRight size={18} />{" "}
-              </Link>
+                <button
+                  type="submit"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-medium transition hover:bg-blue-500 "
+                >
+                  <p className="text-sm">Search </p> <ArrowRight size={18} />
+                </button>
+              </div>
             </div>
-          </motion.div>
+          </motion.form>
         </div>
       </section>
 

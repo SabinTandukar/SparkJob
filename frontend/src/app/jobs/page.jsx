@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { MapPinPlusInside, Search } from "lucide-react";
 import api from "@/lib/axios.js";
+import { useSearchParams } from "next/navigation";
 import JobCard from "@/components/JobCard";
 
 export default function JobsPage() {
+  const searchParams = useSearchParams();
+  const urlKeyword = searchParams.get("keyword") || "";
   const [jobs, setJobs] = useState([]);
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(urlKeyword);
   const [location, setLocation] = useState("");
   const [employeeType, setEmployeeType] = useState("");
 
@@ -80,28 +83,31 @@ export default function JobsPage() {
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="keyword"
+              placeholder="Job Title"
               className="w-full bg-transparent py-3 outline-none"
             />
           </div>
-
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Location"
-            className="rounded-xl bg-slate-800 px-4 py-3 outline-none"
-          />
+          <div className="flex items-center gap-3 rounded-xl bg-slate-800 px-4">
+            <MapPinPlusInside size={18} className="text-slate-500" />
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Location"
+              className="rounded-xl bg-slate-800 px-4 py-3 outline-none"
+            />
+          </div>
 
           <select
             value={employeeType}
             onChange={(e) => setEmployeeType(e.target.value)}
             className="rounded-xl bg-slate-800 px-4 py-3 outline-none"
           >
-            <option value="">All types</option>
+            <option value="">All</option>
             <option value="FULL_TIME">Full Time</option>
             <option value="PART_TIME">Part Time</option>
+            <option value="FREELANCER">Freelance</option>
             <option value="CONTRACT">Contract</option>
-            <option value="FREELANCE">Freelance</option>
+            <option value="INTERNSHIP">Internship</option>
           </select>
 
           <button
