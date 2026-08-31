@@ -383,6 +383,13 @@ export const searchJobs = async (req, res) => {
     // find matching jobs
     const jobs = await prisma.job.findMany({
       where,
+      include: {
+        recruiter: {
+          select: {
+            companyName: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },

@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import { createNotification } from "../utils/notification.js";
 
 // Apply for job
 export const applyForJob = async (req, res) => {
@@ -13,6 +14,7 @@ export const applyForJob = async (req, res) => {
       },
     });
 
+    // check candidate exists
     if (!candidate) {
       return res.status(404).json({ error: "Candidate profile not found" });
     }
@@ -22,11 +24,14 @@ export const applyForJob = async (req, res) => {
       where: {
         id: jobId,
       },
+      include: {
+        recruiter: true,
+      },
     });
 
     // check if job exists
     if (!job) {
-      return res.status(404).json({ error: "Job doesnot exist" });
+      return res.status(404).json({ error: "Job not found" });
     }
 
     // check if job status is open
@@ -40,7 +45,7 @@ export const applyForJob = async (req, res) => {
       return res.status(400).json({ error: "Job is past the deadline" });
     }
 
-    // check duplicate applicatiojn
+    // check if candidate already applied
     const existingApplication = await prisma.jobApplication.findUnique({
       where: {
         candidateId_jobId: {
@@ -56,11 +61,22 @@ export const applyForJob = async (req, res) => {
         .json({ error: "You've already applied for this job" });
     }
 
+    // Create application
     const application = await prisma.jobApplication.create({
       data: {
         candidateId: candidate.id,
         jobId,
         coverLetter,
+      },
+    });
+
+    // Notify recruiter
+    await createNotification({
+      data: {
+        userId: job.recruiter.userId,
+        title: "New Job Application",
+        message: `A candidate has applied for ${job.title}`,
+        type: "APPLICATION_RECEIVED",
       },
     });
 

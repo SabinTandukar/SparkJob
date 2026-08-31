@@ -1,38 +1,44 @@
 import { prisma } from "../lib/prisma.js";
+import { createNotification } from "../utils/notification.js";
 
 // get recruiter application
 export const getRecruiterApplications = async (req, res) => {
   try {
-    // Get filters from query parameters
-    const { status, jobId } = req.query;
+    // get pagination parameters
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      jobId,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
 
-    // find recruiter profile
-    const recruiter = await prisma.recruiterProfile.findUnique({
-      where: {
-        userId: req.user.id,
-      },
-    });
-    // check recruiter exists
-    if (!recruiter) {
-      return res.status(404).json({ error: "Recruiter profile not found" });
-    }
+    // convert query parameters to numbers
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
 
-    /*
-    // find applications for recruiter's job
-    const jobs = await prisma.job.findMany({
-      where: {
-        recruiterId: recruiter.id,
-      },
-    });
-
-    // check if jobs exists
-    if (jobs.length === 0) {
+    // validate pagination
+    if (
+      !Number.isInteger(pageNumber) ||
+      !Number.isInteger(limitNumber) ||
+      pageNumber < 1 ||
+      limitNumber < 1
+    ) {
       return res
-        .status(200)
-        .json({ applications: [], message: "Job does not exists" });
+        .status(400)
+        .json({ error: "Page and limit must be positive number" });
     }
 
-    */
+    // Prevent excessively large request
+    if (limitNumber > 100) {
+      return res
+        .status(400)
+        .json({ error: "Limit cannot be greater than 100" });
+    }
+
+    // calculate skip
+    const skip = (pageNumber - 1) * limitNumber;
 
     // allowed application statuses
     const allowedStatus = [
@@ -51,6 +57,34 @@ export const getRecruiterApplications = async (req, res) => {
       });
     }
 
+    // Allowed sorting fields
+    const allowedSortFields = ["createdAt", "status"];
+
+    // validate sort field
+    if (!allowedSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        error: "Invalid sort field",
+      });
+    }
+
+    // validate sort order
+    if (!["asc", "desc"].includes(order)) {
+      return res.status(400).json({
+        error: "Invalid sort order",
+      });
+    }
+
+    // find recruiter profile
+    const recruiter = await prisma.recruiterProfile.findUnique({
+      where: {
+        userId: req.user.id,
+      },
+    });
+    // check recruiter exists
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter profile not found" });
+    }
+
     // Build where condition
     const where = {
       job: {
@@ -65,38 +99,68 @@ export const getRecruiterApplications = async (req, res) => {
 
     // filter by specific job
     if (jobId) {
-      where.jboId = jobId;
+      where.jobId = jobId;
     }
 
-    // find applications belonging to those jobs
+    // count
+    const totalApplications = await prisma.jobApplication.count({
+      where,
+    });
+
+    // get applications
     const applications = await prisma.jobApplication.findMany({
       where,
-      // include candidate and job information
-      include: {
-        candidate: true,
-        job: true,
-      },
+      // pagination
+      skip,
+      take: limitNumber,
       orderBy: {
         createdAt: "desc",
       },
+      // include candidate and job information
+      include: {
+        candidate: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        job: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            employeeType: true,
+          },
+        },
+      },
     });
 
-    // handle no applications
-    if (applications.length === 0) {
-      return res.status(200).json({
-        applications: [],
-        message: "No applications recieved yet.",
-      });
-    }
-    // return applications
-    return res.status(200).json({ applications });
+    // calculate total pages
+    const totalPages = Math.ceil(totalApplications / limitNumber);
+
+    // return response
+    return res.status(200).json({
+      applications,
+      pagination: {
+        currentPage: pageNumber,
+        limit: limitNumber,
+        totalApplications,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPreviousPage: pageNumber > 1,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong" });
   }
 };
 
-// get one application from recruiter
+// ==========================================
+// GET ONE RECRUITER APPLICATION
+// ==========================================
+
 export const getRecruiterApplicationById = async (req, res) => {
   try {
     // get application id from url
@@ -173,7 +237,9 @@ export const getRecruiterApplicationById = async (req, res) => {
   }
 };
 
-// update application status
+// ==========================================
+// UPDATE APPLICATION STATUS
+// ==========================================
 export const updateApplicationStatus = async (req, res) => {
   try {
     // Get application from url
@@ -251,6 +317,7 @@ export const updateApplicationStatus = async (req, res) => {
       },
     });
 
+    // return response
     return res.status(200).json({
       message: "Application status updated successfully",
       application: updatedApplication,
