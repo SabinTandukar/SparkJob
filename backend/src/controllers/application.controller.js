@@ -1,5 +1,5 @@
+import { title } from "node:process";
 import { prisma } from "../lib/prisma.js";
-import { createNotification } from "../utils/notification.js";
 
 // Apply for job
 export const applyForJob = async (req, res) => {
@@ -41,7 +41,7 @@ export const applyForJob = async (req, res) => {
     }
 
     // check if the deadline had passed
-    if (job.deadline && new Date() > job.deadline) {
+    if (job.deadline && new Date(job.deadline) < new Date()) {
       return res.status(400).json({ error: "Job is past the deadline" });
     }
 
@@ -64,14 +64,15 @@ export const applyForJob = async (req, res) => {
     // Create application
     const application = await prisma.jobApplication.create({
       data: {
+        jobId: job.id,
         candidateId: candidate.id,
-        jobId,
-        coverLetter,
+        coverLetter: coverLetter || "",
+        status: "APPLIED",
       },
     });
 
     // Notify recruiter
-    await createNotification({
+    await prisma.notification.create({
       data: {
         userId: job.recruiter.userId,
         title: "New Job Application",
@@ -81,7 +82,7 @@ export const applyForJob = async (req, res) => {
     });
 
     return res
-      .status(200)
+      .status(201)
       .json({ message: "Application submitted successfully", application });
   } catch (error) {
     console.error(error);
@@ -103,29 +104,97 @@ export const getMyApplications = async (req, res) => {
     if (!candidate) {
       return res.status(404).json({ error: "Candidate profile not found." });
     }
-    // find applications belonging to candidate
-    const jobApplications = await prisma.jobApplication.findMany({
-      where: {
-        candidateId: candidate.id,
-      },
-      // include job information
-      include: {
-        job: true,
-      },
-      // show newest application first
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
 
-    if (jobApplications.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "You have not applied for job yet" });
+    // Query parameters
+    const {
+      status,
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
+
+    const currentPage = Math.max(Number(page), 1);
+    const pageLimit = Math.min(Math.max(Number(limit), 1), 50);
+
+    //  Allowed application statuses
+    const allowedStatuses = [
+      "APPLIED",
+      "REVIEWING",
+      "SHORTLISTED",
+      "INTERVIEW",
+      "HIRED",
+      "REJECTED",
+    ];
+
+    // Validate status
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid application status",
+      });
+    }
+    // Allowed sorting fields
+    const allowedSortFields = ["createdAt", "status"];
+
+    if (!allowedSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        error: "Ivalid sort field",
+      });
     }
 
-    // return applications
-    return res.status(200).json({ jobApplications });
+    // Validate error
+    if (!["asc", "desc"].includes(order)) {
+      return res.status(400).json({
+        error: "Order must be asc or desc",
+      });
+    }
+
+    // Build filter
+    const where = {
+      candidateId: candidate.id,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    // Fetch applications and count
+    const [applications, totalApplications] = await Promise.all([
+      prisma.jobApplication.findMany({
+        where,
+
+        include: {
+          job: {
+            include: {
+              recruiter: {
+                select: {
+                  companyName: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          [sortBy]: order,
+        },
+
+        skip: (currentPage - 1) * pageLimit,
+        take: pageLimit,
+      }),
+    ]);
+
+    const totalpages = Math.ceil(totalApplications / pageLimit);
+
+    return res.status(200).json({
+      applications,
+
+      pagination: {
+        totalApplications,
+        totalpages,
+        currentPage,
+        limit: pageLimit,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Something went wrong." });

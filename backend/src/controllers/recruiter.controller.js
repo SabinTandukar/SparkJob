@@ -35,7 +35,7 @@ export const getMyJobs = async (req, res) => {
 };
 
 // recruiter dashboard statistics
-export const getRecruiterStatus = async (req, res) => {
+export const getRecruiterStats = async (req, res) => {
   try {
     // get recruiter
     const recruiter = await prisma.recruiterProfile.findUnique({
@@ -49,69 +49,122 @@ export const getRecruiterStatus = async (req, res) => {
       return res.status(404).json({ error: "Recruiter profile not found" });
     }
 
-    // get totaljobs
-    const totalJobs = await prisma.job.count({
-      where: {
-        recruiterId: recruiter.id,
-      },
-    });
-
-    // get openJobs
-    const openJobs = await prisma.job.count({
-      where: {
-        recruiterId: recruiter.id,
-        status: "OPEN",
-      },
-    });
-
-    // get closedJob
-    const closedJobs = await prisma.job.count({
-      where: {
-        recruiterId: recruiter.id,
-        status: "CLOSED",
-      },
-    });
-
-    // total applications
-    const totalApplications = await prisma.jobApplication.count({
-      where: {
-        job: {
+    // Get statistics and recent applications
+    const [
+      totalJobs,
+      openJobs,
+      closedJobs,
+      totalApplications,
+      shortlisted,
+      interviews,
+      hired,
+      recentApplications,
+    ] = await Promise.all([
+      // Total jobs
+      prisma.job.count({
+        where: {
           recruiterId: recruiter.id,
         },
-      },
-    });
+      }),
 
-    // shortlisted
-    const shortlisted = await prisma.jobApplication.count({
-      where: {
-        job: {
+      // Open jobs
+      prisma.job.count({
+        where: {
           recruiterId: recruiter.id,
+          status: "OPEN",
+          deadline: {
+            gt: new Date(),
+          },
         },
-      },
-    });
+      }),
 
-    // interview
-    const interviews = await prisma.jobApplication.count({
-      where: {
-        job: {
+      // Closed jobs
+      prisma.job.count({
+        where: {
           recruiterId: recruiter.id,
+          status: "CLOSED",
         },
-        status: "INTERVIEW",
-      },
-    });
+      }),
 
-    // hired
-    const hired = await prisma.jobApplication.count({
-      where: {
-        job: {
-          recruiterId: recruiter.id,
+      // Total applications
+      prisma.jobApplication.count({
+        where: {
+          job: {
+            recruiterId: recruiter.id,
+          },
         },
-        status: "HIRED",
-      },
-    });
+      }),
+
+      // Shortlisted applications
+      prisma.jobApplication.count({
+        where: {
+          job: {
+            recruiterId: recruiter.id,
+          },
+          status: "SHORTLISTED",
+        },
+      }),
+
+      // Interview applications
+      prisma.jobApplication.count({
+        where: {
+          job: {
+            recruiterId: recruiter.id,
+          },
+          status: "INTERVIEW",
+        },
+      }),
+
+      // Hired applications
+      prisma.jobApplication.count({
+        where: {
+          job: {
+            recruiterId: recruiter.id,
+          },
+          status: "HIRED",
+        },
+      }),
+
+      // Recent applications
+      prisma.jobApplication.findMany({
+        where: {
+          job: {
+            recruiterId: recruiter.id,
+          },
+        },
+        include: {
+          candidate: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+
+          job: {
+            select: {
+              id: true,
+              title: true,
+              location: true,
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+        take: 5,
+      }),
+    ]);
+
+    console.log("Recruiter ID:", recruiter.id);
+    console.log("Recent Applications:", recentApplications);
 
     // return
     return res.status(200).json({
+      recruiter: {
+        companyName: recruiter.companyName,
+      },
       statistics: {
         totalJobs,
         openJobs,
@@ -121,6 +174,8 @@ export const getRecruiterStatus = async (req, res) => {
         interviews,
         hired,
       },
+
+      recentApplications,
     });
   } catch (error) {
     console.error(error);

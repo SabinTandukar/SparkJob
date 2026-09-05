@@ -30,13 +30,15 @@ export default function ApplyPage() {
       const response = await api.get(`/jobs/${jobId}`);
       setJob(response.data.job || response.data);
     } catch (error) {
-      console.error(error);
+      console.error("Application error:", error);
 
-      if (error.response?.status === 404) {
-        setError("Job not found");
-      } else {
-        setError("Unable to load job");
-      }
+      console.log("Backend response: ", error.response?.data);
+
+      setError(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to submit application",
+      );
     } finally {
       setLoading(false);
     }

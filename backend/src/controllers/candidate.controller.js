@@ -92,86 +92,7 @@ export const updateCandidateProfile = async (req, res) => {
 // candidate dashboard statistics
 export const getCandidateStats = async (req, res) => {
   try {
-    // get candidate profile
-    const candidate = await prisma.candidateProfile.findUnique({
-      where: {
-        userId: req.user.id,
-      },
-    });
-
-    // check if candidate exists
-    if (!candidate) {
-      return res.status(404).json({ error: "Candidate profile not found" });
-    }
-
-    // get totalApplications
-    const totalApplications = await prisma.jobApplication.count({
-      where: {
-        candidateId: candidate.id,
-      },
-    });
-
-    // reviewing
-    const reviewing = await prisma.jobApplication.count({
-      where: {
-        candidateId: candidate.id,
-        status: "REVIEWING",
-      },
-    });
-
-    // shortlisted
-    const shortlisted = await prisma.jobApplication.count({
-      where: {
-        candidateId: candidate.id,
-        status: "SHORTLISTED",
-      },
-    });
-
-    // interviews
-    const interviews = await prisma.jobApplication.count({
-      where: {
-        candidateId: candidate.id,
-        status: "INTERVIEW",
-      },
-    });
-
-    // hired
-    const hired = await prisma.jobApplication.count({
-      where: {
-        candidateId: candidate.id,
-        status: "HIRED",
-      },
-    });
-
-    // rejected
-    const rejected = await prisma.jobApplication.count({
-      where: {
-        candidateId: candidate.id,
-        status: "REJECTED",
-      },
-    });
-
-    // return
-    return res.status(200).json({
-      statistics: {
-        totalApplications,
-        reviewing,
-        shortlisted,
-        interviews,
-        hired,
-        rejected,
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Something went wrong" });
-  }
-};
-
-// get candidate profile completeness
-export const getProfileCompleteness = async (req, res) => {
-  try {
-    // find candidate profile
+    // Find candidate profile related with profile information
     const candidate = await prisma.candidateProfile.findUnique({
       where: {
         userId: req.user.id,
@@ -184,38 +105,126 @@ export const getProfileCompleteness = async (req, res) => {
       },
     });
 
-    // check candidate exists
+    // Check if candidate exists
     if (!candidate) {
-      return res.status(404).json({
-        error: "Candidate profile not found",
-      });
+      return res.status(404).json({ error: "Candidate profile not found" });
     }
 
-    // Check completed sections
+    // get application statistics
+    const [
+      totalApplications,
+      reviewing,
+      shortlisted,
+      interviews,
+      hired,
+      rejected,
+    ] = await Promise.all([
+      prisma.jobApplication.count({
+        where: {
+          candidateId: candidate.id,
+        },
+      }),
+
+      prisma.jobApplication.count({
+        where: {
+          candidateId: candidate.id,
+          status: "REVIEWING",
+        },
+      }),
+
+      prisma.jobApplication.count({
+        where: {
+          candidateId: candidate.id,
+          status: "SHORTLISTED",
+        },
+      }),
+
+      prisma.jobApplication.count({
+        where: {
+          candidateId: candidate.id,
+          status: "INTERVIEW",
+        },
+      }),
+
+      prisma.jobApplication.count({
+        where: {
+          candidateId: candidate.id,
+          status: "HIRED",
+        },
+      }),
+
+      prisma.jobApplication.count({
+        where: {
+          candidateId: candidate.id,
+          status: "REJECTED",
+        },
+      }),
+    ]);
+
+    // Get recent applications
+    const recentApplications = await prisma.jobApplication.findMany({
+      where: {
+        candidateId: candidate.id,
+      },
+      include: {
+        job: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            employeeType: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+
+      take: 5,
+    });
+
+    // Profile completeness sections
     const sections = {
       firstName: Boolean(candidate.firstName?.trim()),
       lastName: Boolean(candidate.lastName?.trim()),
+      phone: Boolean(candidate.phone?.trim()),
+      location: Boolean(candidate.location?.trim()),
+      headline: Boolean(candidate.headline?.trim()),
+      bio: Boolean(candidate.bio?.trim()),
+      skills: Array.isArray(candidate.skills)
+        ? candidate.skills.length > 0
+        : Boolean(candidate.skills?.trim()),
       education: candidate.education.length > 0,
       experience: candidate.experiences.length > 0,
       projects: candidate.projects.length > 0,
       certifications: candidate.certifications.length > 0,
+      resume: Boolean(candidate.resumeUrl?.trim()),
     };
 
-    // calculate completed sections
+    // Calculate profile completeness
     const completedSections = Object.values(sections).filter(Boolean).length;
 
-    // Total sections
     const totalSections = Object.keys(sections).length;
 
-    // Calculate percentage
-    const completeness = Math.round((completedSections / totalSections) * 100);
+    const profileCompleteness =
+      Math.round(completedSections / totalSections) * 100;
 
-    // return
+    // Return dashboard data
     return res.status(200).json({
-      completeness,
-      completedSections,
-      totalSections,
-      sections,
+      candidate: {
+        firstName: candidate.firstName,
+        lastName: candidate.lastName,
+      },
+      statistics: {
+        totalApplications,
+        reviewing,
+        shortlisted,
+        interviews,
+        hired,
+        rejected,
+        profileCompleteness,
+      },
+      recentApplications,
     });
   } catch (error) {
     console.error(error);

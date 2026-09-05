@@ -5,7 +5,7 @@ import { requireRole } from "../middleware/role.middleware.js";
 
 import {
   getMyJobs,
-  getRecruiterStatus,
+  getRecruiterStats,
 } from "../controllers/recruiter.controller.js";
 
 const router = Router();
@@ -18,7 +18,7 @@ router.get(
   "/statistics",
   authenticate,
   requireRole("RECRUITER"),
-  getRecruiterStatus,
+  getRecruiterStats,
 );
 
 export default router;

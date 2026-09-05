@@ -15,7 +15,12 @@ const router = Router();
 router.post("/:jobId", authenticate, requireRole("CANDIDATE"), applyForJob);
 
 // get candidate job application
-router.get("/my", authenticate, requireRole("CANDIDATE"), getMyApplications);
+router.get(
+  "/my-applications",
+  authenticate,
+  requireRole("CANDIDATE"),
+  getMyApplications,
+);
 
 // get single application
 router.get("/:id", authenticate, requireRole("CANDIDATE"), getApplicationById);

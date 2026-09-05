@@ -7,7 +7,6 @@ import {
   getCandidateProfile,
   updateCandidateProfile,
   getCandidateStats,
-  getProfileCompleteness,
 } from "../controllers/candidate.controller.js";
 
 const router = Router();
@@ -30,17 +29,10 @@ router.get(
 
 // Update candidate profile
 router.put(
-  "/profile/:id",
+  "/profile",
   authenticate,
   requireRole("CANDIDATE"),
   updateCandidateProfile,
-);
-
-router.get(
-  "/profile/completeness",
-  authenticate,
-  requireRole("CANDIDATE"),
-  getProfileCompleteness,
 );
 
 export default router;
